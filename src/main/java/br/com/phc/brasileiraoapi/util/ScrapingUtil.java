@@ -19,7 +19,7 @@ public class ScrapingUtil {
 
 		// 30-12-2021-arouca-x-braga
 		// Segunda aba
-		String url = BASE_URL_GOOGLE + "30-12-2021-arouca-x-braga"
+		String url = BASE_URL_GOOGLE + "Watford+x+Tottenham"
 				+ COMPLEMENTO_URL_GOOGLE;
 		ScrapingUtil scraping = new ScrapingUtil();
 		scraping.obtemInformacoesPartida(url);
@@ -36,8 +36,10 @@ public class ScrapingUtil {
 			// recuperar informações da página
 			String title = document.title();
 			LOGGER.info("Título da Página {}", title);
-			// TESTE
-			obtemStatusPartida(document);
+			
+			StatusPartida statusPartida = obtemStatusPartida(document);
+			String tempoPartida = obtemTempoPartida(document);
+			LOGGER.info("Tempo Partida: {}", tempoPartida);
 
 		} catch (IOException e) {
 			LOGGER.error("Erro ao tentar conectar no Google com Jsoup!!! {}", e.getMessage());
@@ -61,17 +63,39 @@ public class ScrapingUtil {
 			if (tempoPartida.contains("Pênaltis")) {
 				statusPartida = StatusPartida.PARTIDA_PENALTIS;
 			}
-			LOGGER.info(tempoPartida);
 		}
 		isTempoPartida = document.select("span[class=imso_mh__ft-mtch imso-medium-font imso_mh__ft-mtchc]").isEmpty();
 		if (!isTempoPartida) {
 			statusPartida = StatusPartida.PARTIDA_ENCERRADA;
 		}
-
 		LOGGER.info(statusPartida.toString());
-
 		return statusPartida;
-
 	}
 
+	public String obtemTempoPartida(Document document) {
+		String tempoPartida = null;
+		//jogo rolando ou intervalo ou penalidades
+		boolean isTempoPartida = document.select("div[class=imso_mh__lv-m-stts-cont]").isEmpty();
+		if (!isTempoPartida) {
+			tempoPartida = document.select("div[class=imso_mh__lv-m-stts-cont]").first().text();
+			
+		}
+		isTempoPartida = document.select("span[class=imso_mh__ft-mtch imso-medium-font imso_mh__ft-mtchc]").isEmpty();
+		if (!isTempoPartida) {
+			tempoPartida = document.select("span[class=imso_mh__ft-mtch imso-medium-font imso_mh__ft-mtchc]").first().text();
+		}
+		//LOGGER.info(corrigeTempoPartida(tempoPartida));
+		return corrigeTempoPartida(tempoPartida);
+	}
+	public String corrigeTempoPartida(String tempo) {
+		//String tempoPartida = null;
+		if(tempo.contains("'")) {
+			return tempo.replace("'", " min");
+		}else if(tempo.contains("+")){
+			return tempo.replace(" ", "").concat(" min") ;
+		}else {
+			return tempo;
+		}
+		//return tempoPartida;
+	}
 }
