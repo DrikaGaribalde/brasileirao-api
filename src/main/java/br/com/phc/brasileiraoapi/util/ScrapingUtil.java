@@ -18,6 +18,28 @@ public class ScrapingUtil {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ScrapingUtil.class);
 	private static final String BASE_URL_GOOGLE = "https://www.google.com.br/search?q=";
 	private static final String COMPLEMENTO_URL_GOOGLE = "&hl=pt-BR";
+	
+	private static final String ITEM_GOL = "div[class=imso_gs__gs-r]";
+	private static final String DIV_GOLS_EQUIPE_CASA = "div[class=imso_gs__tgs imso_gs__left-team]";
+	private static final String DIV_GOLS_EQUIPE_VISITANTE = "div[class=imso_gs__tgs imso_gs__right-team]";
+	
+	private static final String DIV_PLACAR_EQUIPE_CASA = "div[class=imso_mh__l-tm-sc imso_mh__scr-it imso-light-font]";
+	private static final String DIV_PLACAR_EQUIPE_VISITANTE = "div[class=imso_mh__r-tm-sc imso_mh__scr-it imso-light-font]"; 
+	
+	private static final String ITEM_LOGO = "img[class=imso_btl__mh-logo]";
+	private static final String DIV_DADOS_CASA = "div[class=imso_mh__first-tn-ed imso_mh__tnal-cont imso-tnol]";
+	private static final String DIV_DADOS_VISITANTE = "div[class=imso_mh__second-tn-ed imso_mh__tnal-cont imso-tnol]";
+	
+	private static final String CASA ="casa";
+	private static final String VISITANTE = "visitante";
+	
+	private static final String DIV_PARTIDA_ANDAMENTO = "div[class=imso_mh__lv-m-stts-cont]";
+	private static final String DIV_PARTIDA_ENCERRADA = "span[class=imso_mh__ft-mtch imso-medium-font imso_mh__ft-mtchc]";
+	
+	private static final String HTTPS = "https:";
+	private static final String SRC = "src";
+	private static final String SPAN = "span";
+	private static final String PENALTIS =  "Pênaltis";
 
 	public static void main(String[] args) {
 
@@ -52,31 +74,31 @@ public class ScrapingUtil {
 				LOGGER.info("Tempo Partida: {}", tempoPartida);
 			}
 			//
-			String nomeEquipeCasa = recuperaNomeEquipeCasa(document);
+			String nomeEquipeCasa = recuperaNomeEquipe(document, DIV_DADOS_CASA);
 			LOGGER.info("Nome Equipe da Casa: {}", nomeEquipeCasa);
 
-			String nomeEquipeVisitante = recuperaNomeEquipeVisitante(document);
+			String nomeEquipeVisitante = recuperaNomeEquipe(document, DIV_DADOS_VISITANTE);
 			LOGGER.info("Nome Equipe Visitante: {}", nomeEquipeVisitante);
 
 			// Recuperar as logos
-			String urlLogoEquipeCasa = recuperarLogoEquipeCasa(document);
+			String urlLogoEquipeCasa = recuperarLogoEquipe(document,DIV_DADOS_CASA);
 			LOGGER.info("urlLogo Equipe da Casa: {} ", urlLogoEquipeCasa);
 
-			String urlLogoEquipeVisitante = recuperarLogoEquipeVisitante(document);
+			String urlLogoEquipeVisitante = recuperarLogoEquipe(document, DIV_DADOS_VISITANTE);
 			LOGGER.info("urlLogo Equipe Visistante: {} ", urlLogoEquipeVisitante);
 
 			// Placar
-			Integer placarEquipeCasa = recuperarPlacarEquipeCasa(document);
+			Integer placarEquipeCasa = recuperarPlacarEquipe(document,DIV_PLACAR_EQUIPE_CASA);
 			LOGGER.info("Placar Casa: {}", placarEquipeCasa.toString());
 
-			Integer placarEquipeVisitante = recuperarPlacarEquipeVisitante(document);
+			Integer placarEquipeVisitante = recuperarPlacarEquipe(document, DIV_PLACAR_EQUIPE_VISITANTE);
 			LOGGER.info("Placar Visitante: {}", placarEquipeVisitante.toString());
 
 			// Gols das equipes
-			String golsEquipeCasa = recuperarGolsEquipeCasa(document);
+			String golsEquipeCasa = recuperarGolsEquipe(document, DIV_GOLS_EQUIPE_CASA);
 			LOGGER.info("Gols EquipeCasa: {}", golsEquipeCasa);
 
-			String golsEquipeVisitante = recuperarGolsEquipeVisitante(document);
+			String golsEquipeVisitante = recuperarGolsEquipe(document, DIV_GOLS_EQUIPE_VISITANTE);
 			LOGGER.info("Gols EquipeVisitante: {}", golsEquipeVisitante);
 
 		} catch (IOException e) {
@@ -94,15 +116,15 @@ public class ScrapingUtil {
 		// Partida encerrada
 		// Penalidades
 		StatusPartida statusPartida = StatusPartida.PARTIDA_NAO_INICIADA;
-		boolean isTempoPartida = document.select("div[class=imso_mh__lv-m-stts-cont]").isEmpty();
+		boolean isTempoPartida = document.select(DIV_PARTIDA_ANDAMENTO).isEmpty();
 		if (!isTempoPartida) {
-			String tempoPartida = document.select("div[class=imso_mh__lv-m-stts-cont]").first().text();
+			String tempoPartida = document.select(DIV_PARTIDA_ANDAMENTO).first().text();
 			statusPartida = StatusPartida.PARTIDA_EM_ANDAMENTO;
-			if (tempoPartida.contains("Pênaltis")) {
+			if (tempoPartida.contains(PENALTIS)) {
 				statusPartida = StatusPartida.PARTIDA_PENALTIS;
 			}
 		}
-		isTempoPartida = document.select("span[class=imso_mh__ft-mtch imso-medium-font imso_mh__ft-mtchc]").isEmpty();
+		isTempoPartida = document.select(DIV_PARTIDA_ENCERRADA).isEmpty();
 		if (!isTempoPartida) {
 			statusPartida = StatusPartida.PARTIDA_ENCERRADA;
 		}
@@ -113,13 +135,13 @@ public class ScrapingUtil {
 	public String obtemTempoPartida(Document document) {
 		String tempoPartida = null;
 		// jogo rolando ou intervalo ou penalidades
-		boolean isTempoPartida = document.select("div[class=imso_mh__lv-m-stts-cont]").isEmpty();
+		boolean isTempoPartida = document.select(DIV_PARTIDA_ANDAMENTO).isEmpty();
 		if (!isTempoPartida) {
-			tempoPartida = document.select("div[class=imso_mh__lv-m-stts-cont]").first().text();
+			tempoPartida = document.select(DIV_PARTIDA_ANDAMENTO).first().text();
 		}
-		isTempoPartida = document.select("span[class=imso_mh__ft-mtch imso-medium-font imso_mh__ft-mtchc]").isEmpty();
+		isTempoPartida = document.select(DIV_PARTIDA_ENCERRADA).isEmpty();
 		if (!isTempoPartida) {
-			tempoPartida = document.select("span[class=imso_mh__ft-mtch imso-medium-font imso_mh__ft-mtchc]").first()
+			tempoPartida = document.select(DIV_PARTIDA_ENCERRADA).first()
 					.text();
 		}
 
@@ -134,72 +156,39 @@ public class ScrapingUtil {
 		}
 	}
 
-	// nomeEquipe
-	public String recuperaNomeEquipeCasa(Document document) {
-		Element elemento = document.selectFirst("div[class=imso_mh__first-tn-ed imso_mh__tnal-cont imso-tnol]");
-		String nomeEquipe = elemento.select("span").text();
+	// nomeEquipe ok
+	public String recuperaNomeEquipe(Document document, String itemHtml) {
+		Element elemento = document.selectFirst(itemHtml);
+		String nomeEquipe = elemento.select(SPAN).text();
 		return nomeEquipe;
 	}
 
-	public String recuperaNomeEquipeVisitante(Document document) {
-		Element elemento = document.selectFirst("div[class=imso_mh__second-tn-ed imso_mh__tnal-cont imso-tnol]");
-		String nomeEquipe = elemento.select("span").text();
-		return nomeEquipe;
-	}
-
-	// urlLogo
-	public String recuperarLogoEquipeCasa(Document document) {
-		Element elemento = document.selectFirst("div[class=imso_mh__first-tn-ed imso_mh__tnal-cont imso-tnol]");
-		String urlLogo = "https:" + elemento.select("img[class=imso_btl__mh-logo]").attr("src");
+	// urlLogo ok
+	public String recuperarLogoEquipe(Document document, String itemHtml) {
+		Element elemento = document.selectFirst(itemHtml);
+		String urlLogo = HTTPS + elemento.select(ITEM_LOGO).attr(SRC);
 		return urlLogo;
 	}
 
-	public String recuperarLogoEquipeVisitante(Document document) {
-		Element elemento = document.selectFirst("div[class=imso_mh__second-tn-ed imso_mh__tnal-cont imso-tnol]");
-		String urlLogo = "https:" + elemento.select("img[class=imso_btl__mh-logo]").attr("src");
-		return urlLogo;
-	}
-
-	// placar
-	public Integer recuperarPlacarEquipeCasa(Document document) {
-		String placarEquipe = document.selectFirst("div[class=imso_mh__l-tm-sc imso_mh__scr-it imso-light-font]")
+	// placar ok
+	public Integer recuperarPlacarEquipe(Document document, String itemHtml) {
+		String placarEquipe = document.selectFirst(itemHtml)
 				.text();
-		//return Integer.valueOf(placarEquipe);
 		return formataPlacar(placarEquipe);
 	}
 
-	public Integer recuperarPlacarEquipeVisitante(Document document) {
-		String placarEquipe = document.selectFirst("div[class=imso_mh__r-tm-sc imso_mh__scr-it imso-light-font]")
-				.text();
-		//return Integer.valueOf(placarEquipe);
-		return formataPlacar(placarEquipe);
-	}
-
-	// Recuperar Gols
-	public String recuperarGolsEquipeCasa(Document document) {
+	// Recuperar Gols ok
+	public String recuperarGolsEquipe(Document document, String itemHtml) {
 		List<String> golsEquipe = new ArrayList<>();
 
-		Elements elementos = document.select("div[class=imso_gs__tgs imso_gs__left-team]")
-				.select("div[class=imso_gs__gs-r]");
+		Elements elementos = document.select(itemHtml).select(ITEM_GOL);
 		for (Element e : elementos) {
-			String infoGol = e.select("div[class=imso_gs__gs-r]").text();
+			String infoGol = e.select(ITEM_GOL).text();
 			golsEquipe.add(infoGol);
 		}
 		return String.join(", ", golsEquipe);
 	}
 
-	public String recuperarGolsEquipeVisitante(Document document) {
-		List<String> golsEquipe = new ArrayList<>();
-
-		Elements elementos = document.select("div[class=imso_gs__tgs imso_gs__right-team]")
-				.select("div[class=imso_gs__gs-r]");
-		elementos.forEach(item -> {
-			String infoGol = item.select("div[class=imso_gs__gs-r]").text();
-			golsEquipe.add(infoGol);
-		});
-		return String.join(", ", golsEquipe);
-	}
-	
 	//Tratamento caso o placar seja nulo
 	public Integer formataPlacar(String placar) {
 		Integer valor;
@@ -210,6 +199,4 @@ public class ScrapingUtil {
 		}
 		return valor;
 	}
-	
-
 }
